@@ -1,0 +1,54 @@
+Linux把/lib和/usr/lib两个目录作为默认的库搜索路径，所以使用这两个目录的库时，不需要进行库搜索路径设置，可以直接使用
+对于其他路径的库文件，则需要设置相应的库搜索路径。设置的方式主要有3种：
+
+一、LD_LIBRARY_PATH
+这种方法是常用的动态库加载方法。该变量只在程序运行时才起作用。它可以设置多个路径，用“：”分隔，设置方法如下：
+export LD_LIBRARY_PATH=/usr/local/lib;my_other_path
+
+二、/etc/ld.so.conf.d/和PKG_CONFIG_PATH
+1. sudo gedit /etc/ld.so.conf.d/xxx.conf
+    例如：在xxx.conf中写入添加的库所在路径/usr/local/lib
+
+2. sudo ldconfig //到这一步，运行时就可以找到相应的动态库了
+    将/etc/ld.so.conf列出的路径下的库文件 缓存到/etc/ld.so.cache 以供使用,否则会编译报错，找不到添加的库文件
+   
+   三、编译时指定动态库路径
+把库文件路径写在Makefile里面，例如链接的时候，加上编译选项-L/my_lib_path
+
+-Wl,表示后面的参数将传给link程序ld（因为gcc可能会自动调用ld）。这里通过gcc 的参数”-Wl,-rpath,”指定，例如：
+假设lib_test.so在/root/test/lib下面，那么
+gcc -o main.out -L. –l_test -Wl,-rpath,/root/test/lib main.c
+
+关于-Wl,rpath的使用方法我再举一个例子，应该不难从中看出指定多个路径的方法：
+gcc -Wl,-rpath,/home/arc/test,-rpath,/lib/,-rpath,/usr/lib/,-rpath,/usr/local/lib test.c
+
+备注：
+===》动态库的搜索路径搜索的先后顺序是：
+
+1.编译目标代码时指定的动态库搜索路径；
+2.环境变量LD_LIBRARY_PATH指定的动态库搜索路径；
+3.配置文件/etc/ld.so.conf中指定的动态库搜索路径；
+4.默认的动态库搜索路径/lib
+5.默认的动态库搜索路径/usr/lib
+
+===》可以修改环境变量的文件
+/etc/init.d/rc.local -> /etc/profile （系统登录前调用）
+/etc/bash.bashrc （shell运行时调用）
+~/.bashrc
+
+===》可执行程序搜索路径
+如果想在shell上运行可执行程序，则需要把可执行程序的路径加到当前的环境变量PATH中，例如：
+export PATH=$PATH:"my_exe_path"
+
+===》在Makefile中pkg-config的用法
+编译链接时，使用pkg-config查找库的方法：//我们这里拿opencv来举例
+CFLAGS=`pkg-config --cflags opencv` // ``这个符号代表运行里面的命令
+LDFLAGS=`pkg-config --libs opencv`
+
+gcc $(CFLAGS) -c $<
+gcc $(CFLAGS) -o $@ $^ $(LDFAGS) 
+--------------------- 
+作者：howhot2008 
+来源：CSDN 
+原文：https://blog.csdn.net/howhot2008/article/details/50162343 
+版权声明：本文为博主原创文章，转载请附上博文链接！
